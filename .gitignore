@@ -1,0 +1,4 @@
+BACKUP_KEY.txt
+.DS_Store
+node_modules/
+.env

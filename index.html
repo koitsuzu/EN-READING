@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vibe Web3 - 英語學習 AI 助理</title>
+    <link rel="stylesheet" href="index.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=Outfit:wght@500;700&display=swap"
+        rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@google/generative-ai@0.1.0/dist/index.min.js"></script>
+</head>
+
+<body>
+    <div class="container">
+        <header class="glass-card fade-in">
+            <div class="logo">AI GENERATE READING</div>
+            <div class="user-stats">
+                <span id="streak-display">🔥 連續閱讀: 0 天</span>
+                <button id="settings-btn" title="設定"
+                    style="background:none; border:none; font-size:1.2rem; cursor:pointer; margin-left:0.5rem;">⚙️</button>
+            </div>
+        </header>
+
+        <main>
+            <!-- Article Generator Controls -->
+            <section class="glass-card article-controls fade-in">
+                <select id="topic-select">
+                    <option value="travel">旅遊 Travel</option>
+                    <option value="history">歷史 History</option>
+                    <option value="tech">科技 Technology</option>
+                    <option value="culture">文化 Culture</option>
+                </select>
+                <select id="difficulty-select">
+                    <option value="beginner">初級 Beginner (A1-A2)</option>
+                    <option value="intermediate" selected>中級 Intermediate (B1-B2)</option>
+                    <option value="advanced">高級 Advanced (C1-C2)</option>
+                </select>
+                <input type="text" id="custom-prompt" placeholder="輸入具體主題 (例如: 北海道小樽)...">
+                <button id="generate-btn">生成文章</button>
+                <button id="vocab-generate-btn" style="background: var(--secondary);">根據單字庫生成</button>
+            </section>
+
+            <!-- Article Display Area -->
+            <section class="glass-card article-display fade-in" id="article-section" style="display: none;">
+                <div id="article-loading" style="display: none; text-align: center; padding: 2rem;">
+                    <div class="spinner">AI 正在撰寫文章...</div>
+                </div>
+                <div id="article-container">
+                    <h1 class="article-title" id="article-title">歡迎來到 Vibe English</h1>
+                    <div class="article-content" id="article-content">
+                        點擊「生成文章」開始您的學習之旅。您可以隨時點擊文章中的單字來查詢並儲存到單字庫中。
+                    </div>
+                </div>
+                <div style="margin-top: 2rem; display: flex; gap: 1rem;">
+                    <button id="tts-article-btn">全文朗讀</button>
+                    <button id="start-quiz-btn" style="background: var(--secondary);">開始理解測驗</button>
+                </div>
+            </section>
+        </main>
+
+        <aside>
+            <!-- Calendar View -->
+            <section class="glass-card calendar-card fade-in">
+                <div class="calendar-header">
+                    <h2 id="current-month">2026年1月</h2>
+                    <span class="month-stats" id="month-total">本月閱讀: 0</span>
+                </div>
+                <div class="calendar-grid" id="calendar-grid">
+                    <!-- Days dynamically injected -->
+                </div>
+            </section>
+
+            <!-- Vocabulary Sidebar -->
+            <section class="glass-card vocab-list fade-in">
+                <h2>📚 單字庫</h2>
+                <div class="vocab-tabs">
+                    <div class="vocab-tab active" id="tab-current" onclick="switchVocabTab('current')">當篇</div>
+                    <div class="vocab-tab" id="tab-all" onclick="switchVocabTab('all')">所有</div>
+                </div>
+                <div class="vocab-items" id="vocab-items">
+                    <!-- Words injected here -->
+                </div>
+            </section>
+        </aside>
+    </div>
+
+    <!-- Quiz Modal -->
+    <div class="modal-overlay" id="quiz-modal">
+        <div class="glass-card modal-content fade-in">
+            <h2>📝 文章理解測驗</h2>
+            <div id="quiz-container">
+                <!-- Quiz questions injected here -->
+            </div>
+            <div style="margin-top: 2rem; display: flex; justify-content: flex-end;">
+                <button id="submit-quiz">提交答案</button>
+                <button id="close-quiz" style="background: transparent; margin-left:1rem;">關閉</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div class="modal-overlay" id="settings-modal">
+        <div class="glass-card modal-content fade-in" style="max-width: 500px;">
+            <h2>⚙️ 設定 API Key</h2>
+            <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1rem;">
+                本應用程式需要 Google Gemini API Key 才能運作。您的 Key 僅會儲存在您的瀏覽器中。
+                <br>
+                <a href="https://aistudio.google.com/app/apikey" target="_blank" style="color: var(--primary);">取得免費 API
+                    Key</a>
+            </p>
+            <div style="margin-bottom: 1.5rem;">
+                <label style="display:block; margin-bottom:0.5rem; font-weight:bold;">API Key</label>
+                <input type="password" id="api-key-input" placeholder="貼上您的 API Key" style="width: 100%;">
+                <div style="margin-top:0.5rem;">
+                    <input type="checkbox" id="show-key-toggle"> <label for="show-key-toggle"
+                        style="font-size:0.9rem;">顯示 Key</label>
+                </div>
+            </div>
+            <div style="display: flex; justify-content: flex-end; gap: 1rem;">
+                <button id="save-key-btn">儲存並開始</button>
+                <button id="close-settings-btn" style="background: transparent;">關閉</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Word Detail Modal/Tooltip (AI Interpretation) -->
+    <div id="word-tooltip" class="glass-card"
+        style="position: absolute; display: none; padding: 1rem; z-index: 100; max-width: 250px;">
+        <h3 id="tooltip-word">Word</h3>
+        <p id="tooltip-def" style="font-size: 0.9rem; margin: 0.5rem 0;"></p>
+        <button id="save-word-btn" style="width: 100%; font-size: 0.8rem;">儲存單字</button>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+
+</html>
