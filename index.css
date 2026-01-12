@@ -85,6 +85,7 @@ main {
 }
 
 input[type="text"],
+input[type="password"],
 select,
 button {
     background: white;
@@ -95,16 +96,31 @@ button {
     outline: none;
     transition: var(--transition);
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    font-size: 1rem;
 }
 
-input[type="radio"] {
+input[type="text"]:focus,
+input[type="password"]:focus,
+select:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.15);
+}
+
+input[type="radio"],
+input[type="checkbox"] {
     cursor: pointer;
     accent-color: var(--primary);
+    width: 1.1rem;
+    height: 1.1rem;
+    vertical-align: middle;
+    margin-right: 0.3rem;
 }
 
-select option {
-    background: white;
-    color: var(--text-main);
+label {
+    cursor: pointer;
+    vertical-align: middle;
+    color: var(--text-muted);
+    font-weight: 500;
 }
 
 input[type="text"] {
