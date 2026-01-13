@@ -13,32 +13,35 @@ let state = {
     streak: 0
 };
 
-// DOM Elements
+// DOM Elements (Lazy Fetch to prevent null errors)
+const getEl = (id) => document.getElementById(id);
 const elements = {
-    generateBtn: document.getElementById('generate-btn'),
-    vocabGenerateBtn: document.getElementById('vocab-generate-btn'),
-    topicSelect: document.getElementById('topic-select'),
-    diffSelect: document.getElementById('difficulty-select'),
-    customPrompt: document.getElementById('custom-prompt'),
-    articleSection: document.getElementById('article-section'),
-    articleContent: document.getElementById('article-content'),
-    articleTitle: document.getElementById('article-title'),
-    vocabItems: document.getElementById('vocab-items'),
-    calendarGrid: document.getElementById('calendar-grid'),
-    monthTotal: document.getElementById('month-total'),
-    currentMonth: document.getElementById('current-month'),
-    streakDisplay: document.getElementById('streak-display'),
-    startQuizBtn: document.getElementById('start-quiz-btn'),
-    quizModal: document.getElementById('quiz-modal'),
-    quizContainer: document.getElementById('quiz-container'),
-    wordTooltip: document.getElementById('word-tooltip'),
+    get generateBtn() { return getEl('generate-btn'); },
+    get vocabGenerateBtn() { return getEl('vocab-generate-btn'); },
+    get topicSelect() { return getEl('topic-select'); },
+    get diffSelect() { return getEl('difficulty-select'); },
+    get customPrompt() { return getEl('custom-prompt'); },
+    get articleSection() { return getEl('article-section'); },
+    get articleContent() { return getEl('article-content'); },
+    get articleTitle() { return getEl('article-title'); },
+    get vocabItems() { return getEl('vocab-items'); },
+    get calendarGrid() { return getEl('calendar-grid'); },
+    get monthTotal() { return getEl('month-total'); },
+    get currentMonth() { return getEl('current-month'); },
+    get streakDisplay() { return getEl('streak-display'); },
+    get startQuizBtn() { return getEl('start-quiz-btn'); },
+    get quizModal() { return getEl('quiz-modal'); },
+    get quizContainer() { return getEl('quiz-container'); },
+    get wordTooltip() { return getEl('word-tooltip'); },
+    get voiceSelect() { return getEl('voice-select'); },
+    get pauseBtn() { return getEl('tts-pause-btn'); },
     // Settings
-    settingsBtn: document.getElementById('settings-btn'),
-    settingsModal: document.getElementById('settings-modal'),
-    apiKeyInput: document.getElementById('api-key-input'),
-    saveKeyBtn: document.getElementById('save-key-btn'),
-    closeSettingsBtn: document.getElementById('close-settings-btn'),
-    showKeyToggle: document.getElementById('show-key-toggle')
+    get settingsBtn() { return getEl('settings-btn'); },
+    get settingsModal() { return getEl('settings-modal'); },
+    get apiKeyInput() { return getEl('api-key-input'); },
+    get saveKeyBtn() { return getEl('save-key-btn'); },
+    get closeSettingsBtn() { return getEl('close-settings-btn'); },
+    get showKeyToggle() { return getEl('show-key-toggle'); }
 };
 
 // Initialize
@@ -62,7 +65,12 @@ async function callGemini(prompt) {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 contents: [{ parts: [{ text: prompt }] }],
-                generationConfig: { responseMimeType: "application/json" }
+                generationConfig: {
+                    responseMimeType: "application/json",
+                    temperature: 0.7,
+                    maxOutputTokens: 1500,
+                    topP: 0.95
+                }
             })
         });
         const data = await response.json();
@@ -120,31 +128,47 @@ function renderArticle(title, content) {
 
 // Generate Quiz
 async function generateQuiz(content) {
-    const prompt = `Based on this article: "${content}", generate 3 multiple choice comprehension questions. 
-    Ensure the questions and options are in English.
-    For each question, include a detailed explanation in Traditional Chinese.
-    Return JSON array: [{ "question": "...", "options": ["...", "...", "...", "..."], "answer": index, "explanation": "..." }]`;
+    // 精簡提示詞以加快生成速度
+    const prompt = `Task: Generate 3 English comprehension MCQs for text: "${content.substring(0, 1500)}".
+    Requirement: Questions/Options in English, Explanation in Traditional Chinese.
+    Format: JSON Array [{question, options, answer(int), explanation}]`;
     const quiz = await callGemini(prompt);
     if (quiz) state.currentQuiz = quiz;
 }
 
 // Word Logic
 async function handleWordClick(event, word) {
+    if (!word) return;
+    const tooltip = elements.wordTooltip;
+    const tooltipWord = getEl('tooltip-word');
+    const tooltipDef = getEl('tooltip-def');
+    const saveBtn = getEl('save-word-btn');
+
+    if (!tooltip || !tooltipWord || !tooltipDef) return;
+
+    // 重設狀態，防止殘留
+    tooltipWord.innerText = word;
+    tooltipDef.innerText = "翻譯中...";
+    if (saveBtn) {
+        saveBtn.onclick = null;
+        saveBtn.style.display = 'none';
+    }
+
     const rect = event.target.getBoundingClientRect();
-    elements.wordTooltip.style.top = `${rect.bottom + window.scrollY + 5}px`;
-    elements.wordTooltip.style.left = `${rect.left + window.scrollX}px`;
-    elements.wordTooltip.style.display = 'block';
+    tooltip.style.top = `${rect.bottom + window.scrollY + 5}px`;
+    tooltip.style.left = `${rect.left + window.scrollX}px`;
+    tooltip.style.display = 'block';
 
-    document.getElementById('tooltip-word').innerText = word;
-    document.getElementById('tooltip-def').innerText = "翻譯中...";
-
-    const prompt = `Translate this English word to Traditional Chinese and provide a short English definition: "${word}".
+    const prompt = `Translate this English word to Traditional Chinese and provide a short English definition: "${word.replace(/"/g, '\\"')}".
     Return JSON: { "translation": "...", "definition": "..." }`;
     const result = await callGemini(prompt);
 
     if (result) {
-        document.getElementById('tooltip-def').innerText = `${result.translation} - ${result.definition}`;
-        document.getElementById('save-word-btn').onclick = () => saveWord(word, result.translation, result.definition);
+        tooltipDef.innerText = `${result.translation} - ${result.definition}`;
+        if (saveBtn) {
+            saveBtn.style.display = 'block';
+            saveBtn.onclick = () => saveWord(word, result.translation, result.definition);
+        }
     }
 }
 
@@ -203,10 +227,50 @@ window.deleteWord = function (word) {
     }
 };
 
-// Speech
+// Speech Evolution
+function loadVoices() {
+    const voices = window.speechSynthesis.getVoices();
+    if (!elements.voiceSelect) return;
+    elements.voiceSelect.innerHTML = voices
+        .filter(v => v.lang.startsWith('en'))
+        .map(v => `<option value="${v.name}">${v.name}</option>`)
+        .join('');
+}
+
+window.speechSynthesis.onvoiceschanged = loadVoices;
+
 function speak(text) {
+    if (window.speechSynthesis.speaking) {
+        if (window.speechSynthesis.paused) {
+            window.speechSynthesis.resume();
+            elements.pauseBtn.innerText = "⏸ 暫停";
+            return;
+        } else {
+            window.speechSynthesis.pause();
+            elements.pauseBtn.innerText = "▶️ 繼續";
+            return;
+        }
+    }
+
     const utterance = new SpeechSynthesisUtterance(text);
+    const voices = window.speechSynthesis.getVoices();
+    const selectedVoice = voices.find(v => v.name === elements.voiceSelect.value);
+
+    if (selectedVoice) utterance.voice = selectedVoice;
     utterance.lang = 'en-US';
+    utterance.rate = 0.9;
+
+    utterance.onstart = () => {
+        elements.pauseBtn.style.display = 'block';
+        elements.pauseBtn.innerText = "⏸ 暫停";
+        document.getElementById('tts-article-btn').innerText = "⏹ 停止朗讀";
+    };
+
+    utterance.onend = () => {
+        elements.pauseBtn.style.display = 'none';
+        document.getElementById('tts-article-btn').innerText = "🔊 全文朗讀";
+    };
+
     window.speechSynthesis.speak(utterance);
 }
 
@@ -331,7 +395,28 @@ function setupEventListeners() {
         document.getElementById('submit-quiz').style.display = 'none'; // Prevent double submit
     };
 
-    document.getElementById('tts-article-btn').onclick = () => speak(state.currentArticle.content);
+    document.getElementById('tts-article-btn').onclick = () => {
+        if (window.speechSynthesis.speaking && !window.speechSynthesis.paused) {
+            window.speechSynthesis.cancel();
+            document.getElementById('tts-article-btn').innerText = "🔊 全文朗讀";
+            elements.pauseBtn.style.display = 'none';
+        } else {
+            speak(state.currentArticle.content);
+        }
+    };
+
+    elements.pauseBtn.onclick = () => {
+        if (window.speechSynthesis.paused) {
+            window.speechSynthesis.resume();
+            elements.pauseBtn.innerText = "⏸ 暫停";
+        } else {
+            window.speechSynthesis.pause();
+            elements.pauseBtn.innerText = "▶️ 繼續";
+        }
+    };
+
+    // 初始化語音
+    setTimeout(loadVoices, 500);
 
     window.addEventListener('click', (e) => {
         if (!elements.wordTooltip.contains(e.target) && !elements.articleContent.contains(e.target)) {
@@ -350,6 +435,21 @@ function setupEventListeners() {
 
     // Handle initial global function for HTML onclick (keep for legacy or external calls if any)
     window.switchVocabTab = switchVocabTab;
+
+    // 監聽儲存事件，達成與擴充套件的即時同步 UI 更新
+    window.addEventListener('storage', () => {
+        const vocab = localStorage.getItem('vibe_vocab');
+        const reading = localStorage.getItem('vibe_reading');
+        const key = localStorage.getItem('vibe_api_key');
+
+        if (vocab) state.vocabulary = JSON.parse(vocab);
+        if (reading) state.readingHistory = JSON.parse(reading);
+        if (key) API_KEY = key;
+
+        renderVocabulary();
+        renderCalendar();
+        updateStreak();
+    });
 }
 
 // Settings Logic

@@ -54,9 +54,15 @@
                         點擊「生成文章」開始您的學習之旅。您可以隨時點擊文章中的單字來查詢並儲存到單字庫中。
                     </div>
                 </div>
-                <div style="margin-top: 2rem; display: flex; gap: 1rem;">
-                    <button id="tts-article-btn">全文朗讀</button>
-                    <button id="start-quiz-btn" style="background: var(--secondary);">開始理解測驗</button>
+                <div style="margin-top: 2rem; display: flex; flex-direction: column; gap: 1rem;">
+                    <div style="display: flex; gap: 1rem; align-items: center;">
+                        <button id="tts-article-btn" style="flex: 1;">🔊 全文朗讀</button>
+                        <button id="tts-pause-btn" style="padding: 0.8rem 1.2rem; display: none;">⏸ 暫停</button>
+                    </div>
+                    <select id="voice-select" style="width: 100%; font-size: 0.9rem;">
+                        <option value="">正在載入語音來源...</option>
+                    </select>
+                    <button id="start-quiz-btn" style="background: var(--secondary); width: 100%;">開始理解測驗</button>
                 </div>
             </section>
         </main>

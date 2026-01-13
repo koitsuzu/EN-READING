@@ -1,0 +1,51 @@
+{
+    "manifest_version": 3,
+    "name": "EN-READING",
+    "version": "1.0",
+    "description": "抓取全網英文內容，即時生成測驗與翻譯助理",
+    "permissions": [
+        "contextMenus",
+        "sidePanel",
+        "storage",
+        "scripting",
+        "activeTab",
+        "notifications"
+    ],
+    "host_permissions": [
+        "<all_urls>"
+    ],
+    "content_scripts": [
+        {
+            "matches": [
+                "file:///*",
+                "http://localhost/*",
+                "https://koitsuzu.github.io/*"
+            ],
+            "js": [
+                "content_script.js"
+            ],
+            "run_at": "document_start"
+        }
+    ],
+    "background": {
+        "service_worker": "background.js"
+    },
+    "side_panel": {
+        "default_path": "sidepanel.html"
+    },
+    "action": {
+        "default_title": "開啟 EN-READING 側邊欄",
+        "default_icon": {
+            "16": "icon16.png",
+            "32": "icon32.png",
+            "48": "icon48.png",
+            "128": "icon128.png"
+        }
+    },
+    "icons": {
+        "16": "icon16.png",
+        "32": "icon32.png",
+        "48": "icon48.png",
+        "128": "icon128.png"
+    }
+}

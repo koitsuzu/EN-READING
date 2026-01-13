@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EN-READING 側邊欄</title>
+    <link rel="stylesheet" href="sidepanel.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=Outfit:wght@500;700&display=swap"
+        rel="stylesheet">
+    <!-- 修正 sidepanel 環境下 library 報錯 (符合 CSP) -->
+    <script src="lib/fix_exports.js"></script>
+    <script src="lib/generative-ai.min.js"></script>
+</head>
+
+<body>
+    <div class="side-container">
+        <header class="glass-card fade-in">
+            <div class="logo">EN-READING</div>
+            <div class="user-stats">
+                <div class="stats-overview"
+                    style="font-size: 0.75rem; text-align: right; color: var(--text-muted); margin-right: 0.8rem;">
+                    <div id="total-reading-display">📚 累積: 0</div>
+                    <div id="streak-display">🔥 0 天</div>
+                </div>
+                <button id="settings-btn" title="設定">⚙️</button>
+            </div>
+        </header>
+
+        <main>
+            <!-- 初始引導狀態 -->
+            <section id="status-display" class="glass-card fade-in">
+                <p id="instruction-text">選取網頁中的英文段落，<br>右鍵點擊「傳送到 EN-READING」開始！</p>
+            </section>
+
+            <!-- 文章內容顯示區 -->
+            <section class="glass-card article-display fade-in" id="article-section" style="display: none;">
+                <div id="article-loading" style="display: none; text-align: center; padding: 1rem;">
+                    <div class="spinner">AI 正在分析選取內容...</div>
+                </div>
+                <div id="article-container">
+                    <div class="article-content" id="article-content">
+                        <!-- 選取的文字會注入在此 -->
+                    </div>
+                </div>
+                <div class="tts-controls"
+                    style="margin-top: 1.5rem; display: flex; flex-direction: column; gap: 0.8rem;">
+                    <div style="display:flex; gap:0.5rem; align-items:center;">
+                        <button id="tts-article-btn" style="flex:1;">🔊 全文朗讀</button>
+                        <button id="tts-pause-btn" style="padding:0.7rem; display:none;">⏸</button>
+                    </div>
+                    <select id="voice-select" style="padding:0.5rem; font-size:0.8rem; border-radius:8px;">
+                        <option value="">正在載入語音...</option>
+                    </select>
+                    <button id="start-quiz-btn" style="background: var(--secondary); color: #1e293b;">開始測驗</button>
+                </div>
+            </section>
+
+            <!-- 單字庫區塊 (側邊欄直接整合在下方) -->
+            <section class="glass-card vocab-list fade-in">
+                <h2>📚 單字庫</h2>
+                <div class="vocab-tabs">
+                    <div class="vocab-tab active" id="tab-current">當篇</div>
+                    <div class="vocab-tab" id="tab-all">所有</div>
+                </div>
+                <div class="vocab-items" id="vocab-items">
+                    <div style="text-align:center; color:var(--text-muted); padding:1rem;">尚無單字</div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- 測驗彈窗 (蓋在側邊欄上方) -->
+    <div class="modal-overlay" id="quiz-modal">
+        <div class="glass-card modal-content fade-in">
+            <h2>📝 內容理解練習</h2>
+            <div id="quiz-container">
+                <!-- 測驗內容 -->
+            </div>
+            <div style="margin-top: 1.5rem; display: flex; justify-content: flex-end; gap: 0.5rem;">
+                <button id="submit-quiz">提交</button>
+                <button id="close-quiz" style="background: transparent; color: var(--text-muted);">關閉</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- API 設定彈窗 -->
+    <div class="modal-overlay" id="settings-modal">
+        <div class="glass-card modal-content fade-in">
+            <h2>⚙️ 設定 API Key</h2>
+            <p style="color: var(--text-muted); font-size: 0.8rem; margin-bottom: 1rem;">
+                本擴充套件需要 Google Gemini API Key。您的 Key 僅會儲存在您的瀏覽器中。
+                <br>
+                <a href="https://aistudio.google.com/app/apikey" target="_blank" style="color: var(--primary);">取得免費 API
+                    Key</a>
+            </p>
+            <div style="margin-bottom: 1rem;">
+                <input type="password" id="api-key-input" placeholder="貼上您的 API Key" style="width: 100%;">
+                <div style="margin-top:0.5rem; display:flex; justify-content:space-between; align-items:center;">
+                    <div>
+                        <input type="checkbox" id="show-key-toggle"> <label for="show-key-toggle"
+                            style="font-size:0.8rem;">顯示金鑰</label>
+                    </div>
+                    <button id="test-key-btn"
+                        style="font-size:0.75rem; padding: 4px 10px; background:var(--secondary); color:#1e293b;">測試連線</button>
+                </div>
+                <div id="api-status-msg"
+                    style="margin-top:0.5rem; font-size:0.75rem; display:none; padding:8px; border-radius:4px;"></div>
+            </div>
+            <div style="display: flex; justify-content: flex-end; gap: 0.5rem;">
+                <button id="save-key-btn">儲存</button>
+                <button id="close-settings-btn" style="background: transparent; color: var(--text-muted);">關閉</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 單字詳細資訊 (點擊浮窗) -->
+    <div id="word-tooltip" class="glass-card"
+        style="position: absolute; display: none; padding: 1rem; z-index: 100; max-width: 220px; box-shadow: 0 10px 25px rgba(0,0,0,0.15);">
+        <h3 id="tooltip-word" style="font-size: 1.1rem; color: var(--primary);">Word</h3>
+        <p id="tooltip-def" style="font-size: 0.9rem; margin: 0.5rem 0; line-height: 1.4;"></p>
+        <button id="save-word-btn"
+            style="width: 100%; font-size: 0.8rem; padding: 0.5rem; margin-top: 0.5rem;">儲存到單字庫</button>
+    </div>
+
+    <script src="sidepanel.js"></script>
+</body>
+
+</html>
