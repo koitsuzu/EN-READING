@@ -128,8 +128,11 @@ function renderArticle(title, content) {
 
 // Generate Quiz
 async function generateQuiz(content) {
-    // 精簡提示詞以加快生成速度
-    const prompt = `Task: Generate 3 English comprehension MCQs for text: "${content.substring(0, 1500)}".
+    // 提升測驗生成的上下文上限，確保長文也能生成完整測驗
+    const contextLimit = 15000;
+    const processingText = content.length > contextLimit ? content.substring(0, contextLimit) + "..." : content;
+
+    const prompt = `Task: Generate 3 English comprehension MCQs based on this text: "${processingText}".
     Requirement: Questions/Options in English, Explanation in Traditional Chinese.
     Format: JSON Array [{question, options, answer(int), explanation}]`;
     const quiz = await callGemini(prompt);

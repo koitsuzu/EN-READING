@@ -102,11 +102,10 @@ async function processText(text) {
     elements.articleContent.innerHTML = "<div class='spinner'>AI 正在分析內容並生成測驗...</div>";
     state.currentVocab = [];
 
-    // 限制處理的文章長度，避免過長導致 AI 生成緩慢 (約前 2000 字)
-    const truncatedText = text.length > 5000 ? text.substring(0, 5000) + "..." : text;
-    state.currentArticle = { content: truncatedText };
+    state.currentArticle = { content: text };
 
-    renderArticle(truncatedText);
+    // 渲染全文以供閱讀，不截斷
+    renderArticle(text);
 
     if (!API_KEY) {
         elements.articleContent.innerHTML += "<p style='color:var(--primary); margin-top:1rem;'>請先設定 API Key 才能生成測驗。</p>";
@@ -152,8 +151,11 @@ async function callGemini(prompt, customKey = null) {
 }
 
 async function generateQuiz(content) {
-    // 精簡提示詞以加快推理速度
-    const prompt = `Task: Generate 3 English comprehension MCQs for text: "${content.substring(0, 1500)}".
+    // 測驗生成時使用較大的上下文（例如 10,000 字），這對 Gemini 2.5 Flash 來說很輕鬆且依然快速
+    const contextLimit = 15000;
+    const processingText = content.length > contextLimit ? content.substring(0, contextLimit) + "..." : content;
+
+    const prompt = `Task: Generate 3 English comprehension MCQs based on this text: "${processingText}".
     Requirement: Questions/Options in English, Explanation in Traditional Chinese.
     Format: JSON Array [{question, options, answer(int), explanation}]`;
 
