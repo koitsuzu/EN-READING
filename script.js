@@ -74,8 +74,17 @@ async function callGemini(prompt) {
             })
         });
         const data = await response.json();
-        const text = data.candidates[0].content.parts[0].text;
-        return JSON.parse(text);
+        let text = data.candidates[0].content.parts[0].text;
+
+        // 清理 JSON 字串：移除 Markdown 標記並去除空格
+        text = text.replace(/```json/g, "").replace(/```/g, "").trim();
+
+        try {
+            return JSON.parse(text);
+        } catch (e) {
+            console.error("JSON Parse Error. Cleaned text:", text);
+            return null;
+        }
     } catch (error) {
         console.error("Gemini API Error:", error);
         if (error.status === 400 || error.message.includes("400")) {
@@ -134,7 +143,7 @@ async function generateQuiz(content) {
 
     const prompt = `Task: Generate 3 English comprehension MCQs based on this text: "${processingText}".
     Requirement: Questions/Options in English, Explanation in Traditional Chinese.
-    Format: JSON Array [{question, options, answer(int), explanation}]`;
+    Format: ONLY return a JSON Array [{question, options, answer(int), explanation}]. No prose, no markdown labels.`;
     const quiz = await callGemini(prompt);
     if (quiz) state.currentQuiz = quiz;
 }

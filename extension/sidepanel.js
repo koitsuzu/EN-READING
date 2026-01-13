@@ -142,8 +142,17 @@ async function callGemini(prompt, customKey = null) {
             throw new Error(errorMsg);
         }
 
-        const text = data.candidates[0].content.parts[0].text;
-        return { data: JSON.parse(text) };
+        let text = data.candidates[0].content.parts[0].text;
+
+        // 清理 JSON 字串：移除 Markdown 標記 (```json ... ```) 並去除首尾空格
+        text = text.replace(/```json/g, "").replace(/```/g, "").trim();
+
+        try {
+            return { data: JSON.parse(text) };
+        } catch (e) {
+            console.error("JSON Parse Error. Cleaned text:", text);
+            throw new Error(`JSON 解析失敗: ${e.message}`);
+        }
     } catch (error) {
         console.error("Gemini API Error:", error);
         return { error: error.message };
@@ -157,7 +166,7 @@ async function generateQuiz(content) {
 
     const prompt = `Task: Generate 3 English comprehension MCQs based on this text: "${processingText}".
     Requirement: Questions/Options in English, Explanation in Traditional Chinese.
-    Format: JSON Array [{question, options, answer(int), explanation}]`;
+    Format: ONLY return a JSON Array [{question, options, answer(int), explanation}]. No prose, no markdown labels.`;
 
     const result = await callGemini(prompt);
     if (result.data) {
